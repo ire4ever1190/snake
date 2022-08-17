@@ -102,7 +102,7 @@ while not windowShouldClose():
   beginDrawing:
     clearBackground(RayWhite)
     # Render score
-    drawText(cstring("Your score is: " & $state.score), 10, 10, 20, Pink)
+    drawText(cstring("Your score is: " & $state.score), 10, 10, 10, Pink)
     # Render previous scores
     # for i in 0..<scores.len:
       # drawText($score, boardStart + ivec2(squareSize * boardSize) + ivec2(10), 20, Black)
@@ -115,7 +115,7 @@ while not windowShouldClose():
       drawRectangle(
         boardStart + pos * squareSize, 
         ivec2(squareSize, squareSize), 
-        Red
+        Orange
       )
       if pos == state.snake[0] and runChecks:
         fruitHit = i
@@ -135,5 +135,5 @@ while not windowShouldClose():
         (0, min(57 + i * 5, 255), 0) # Add changing colour to snake
       )
     if state.gameOver:
-      drawText("GAME OVER", 50, 50, 20, Red)
+      drawText("GAME OVER", 50, 50, 20, Pink)
 closeWindow()
