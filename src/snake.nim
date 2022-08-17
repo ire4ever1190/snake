@@ -1,9 +1,11 @@
-import nimraylib_now
-import os
-import vmath
-import random
+import pkg/[
+  nimraylib_now,
+  vmath
+]
 
-import drawing
+import std/random
+
+import drawing, utils
 
 {.experimental: "overloadableEnums".}
 
@@ -59,16 +61,16 @@ setTargetFPS(60)
 while not windowShouldClose():
   # Check input
   if not state.gameOver:
-    let newDirection = if isKeyPressed(KeyboardKey.Right):
+    newDirection = if anyPressed(KeyboardKey.Right, KeyboardKey.D):
       ivec2(1, 0)
-    elif isKeyPressed(KeyboardKey.Left):
+    elif anyPressed(KeyboardKey.Left, KeyboardKey.A):
       ivec2(-1, 0)
-    elif isKeyPressed(KeyboardKey.Up):
+    elif anyPressed(KeyboardKey.Up, KeyboardKey.W):
       ivec2(0, -1)
-    elif isKeyPressed(KeyboardKey.Down):
+    elif anyPressed(KeyboardKey.Down, KeyboardKey.S):
       ivec2(0, 1)
     else: 
-      state.direction
+      newDirection
     
   else:
     if isKeyPressed(KeyboardKey.Enter):
