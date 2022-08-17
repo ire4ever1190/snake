@@ -34,7 +34,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install libgl1-mesa-dev libxrandr2 libxrandr-dev x11-xserver-utils libxcursor-dev
+          sudo apt install libgl1-mesa-dev libxrandr2 libxrandr-dev x11-xserver-utils libxcursor-dev libxcb-xinerma0-dev
 
       - name: Update nimble
         run: nimble update -y
