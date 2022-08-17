@@ -31,6 +31,11 @@ jobs:
         with:
           nim-version: 1.6.4
 
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install libx11-dev 
+          
       - name: Update nimble
         run: nimble update -y
 
