@@ -30,7 +30,9 @@ randomize()
 
 proc randomAvailableSpot(g: GameState): IVec2 =
   ## Returns a position that isn't a fruit or snake piece
-  while true:
+  var attempts = 4
+  while attempts > 0:
+    attempts -= 1
     let 
       x = rand(0..<boardSize)
       y = rand(0..<boardSize)
@@ -44,9 +46,9 @@ func incStep(g: var GameState) =
 
 
 proc initGame(): GameState = 
-  result.snake &= result.randomAvailableSpot()
-  echo result.snake.len
-  result.fruits &= result.randomAvailableSpot()
+  result.snake &= ivec2(boardSize div 2)
+  for i in 0..<3:
+    result.fruits &= result.randomAvailableSpot()
   result.direction = ivec2(1, 0)
   result.grow = false
     
@@ -104,8 +106,6 @@ while not windowShouldClose():
     # Render previous scores
     # for i in 0..<scores.len:
       # drawText($score, boardStart + ivec2(squareSize * boardSize) + ivec2(10), 20, Black)
-    if state.gameOver:
-      drawText("GAME OVER", 50, 50, 20, Red)
     # Draw walls
     drawRectangleLines(boardStart, ivec2(squareSize * boardSize), Black)
     # Render board and check if snake intersecting with fruit
@@ -134,4 +134,6 @@ while not windowShouldClose():
         ivec2(squareSize, squareSize),
         (0, min(57 + i * 5, 255), 0) # Add changing colour to snake
       )
+    if state.gameOver:
+      drawText("GAME OVER", 50, 50, 20, Red)
 closeWindow()
