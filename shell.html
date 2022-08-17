@@ -57,7 +57,11 @@
       div.emscripten_border { border: 1px solid black; }
       
       /* the canvas *must not* have any border or padding, or mouse coords will be wrong */
-      canvas.emscripten { border: 0px none; background: black; width: 100% }
+      canvas.emscripten { 
+      	border: 0px none; 
+      	background: black; 
+      	/*width: 100% */
+      }
       
       #emscripten_logo {
         display: inline-block;
@@ -156,7 +160,7 @@
       <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
     </div>
     
-    <textarea id="output" rows="8"></textarea>
+    <!-- <textarea id="output" rows="8"></textarea> -->
 
     <script type='text/javascript' src="https://cdn.jsdelivr.net/gh/eligrey/FileSaver.js/dist/FileSaver.min.js"> </script>
     <script type='text/javascript'>

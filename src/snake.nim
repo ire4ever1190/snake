@@ -108,7 +108,7 @@ while not windowShouldClose():
     # for i in 0..<scores.len:
       # drawText($score, boardStart + ivec2(squareSize * boardSize) + ivec2(10), 20, Black)
     # Draw walls
-    drawLine(boardStart, boardStart + ivec2(squareSize * boardSize), Black)
+    drawLine(boardStart, boardStart + ivec2(squareSize * boardSize, 0), Black)
     # Render board and check if snake intersecting with fruit
     var fruitHit = -1
     for i in 0..<state.fruits.len:
