@@ -1,0 +1,43 @@
+name: Check build
+
+on: 
+  pull_request:
+    types: [ opened, reopened, synchronize ]
+
+# Allow one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+
+
+      - name: Cache nimble
+        id: cache-nimble
+        uses: actions/cache@v1
+        with:
+          path: ~/.nimble
+          key: ${{ runner.os }}-nimble-${{ hashFiles('*.nimble') }}
+        
+      - name: Setup nim
+        uses: jiro4989/setup-nim-action@v1
+        with:
+          nim-version: 1.6.4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install libx11-dev libxcursor-dev libxrandr-dev
+
+      - name: Update nimble
+        run: nimble update -y
+
+      - name: Build app
+        run: nimble build
