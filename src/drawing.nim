@@ -13,3 +13,6 @@ drawRectProc(drawRectangleLines)
 
 proc drawText*(text: string, pos: IVec2, size: int, color: Color) =
   drawText(cstring(text), pos.x, pos.y, size, color)
+
+proc drawLine*(a, b: IVec2, color: Color) =
+  drawLine(a.x, a.y, b.x, b.y, color)
