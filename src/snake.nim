@@ -13,7 +13,7 @@ const
   background: Color = (0xff, 0xc2, 0x00)
   boardSize = 10
   squareSize = 30
-  boardStart = ivec2(30, 30) # Start of game area
+  boardStart = ivec2(0, 30) # Start of game area
 
 var scores: seq[int]
 
@@ -56,8 +56,9 @@ var
   state = initGame()
   newDirection = state.direction
 
-
-initWindow(800, 450, "Example")
+block:
+  let windowSize = boardStart + ivec2(boardSize * squareSize)
+  initWindow(windowSize.x, windowSize.y, "Snake")
 setTargetFPS(60)
 
 while not windowShouldClose():
