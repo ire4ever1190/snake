@@ -36,7 +36,6 @@ jobs:
           sudo apt update
           sudo apt install sudo apt-get install libgl1-mesa-dev libxrandr2 libxrandr-dev x11-xserver-utils
 
-
       - name: Update nimble
         run: nimble update -y
 
