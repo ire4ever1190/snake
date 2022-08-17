@@ -14,6 +14,7 @@ const
   boardSize = 10
   squareSize = 30
   boardStart = ivec2(0, 30) # Start of game area
+  boardPixLength = boardSize * squareSize
 
 var scores: seq[int]
 
@@ -108,7 +109,7 @@ while not windowShouldClose():
     # for i in 0..<scores.len:
       # drawText($score, boardStart + ivec2(squareSize * boardSize) + ivec2(10), 20, Black)
     # Draw walls
-    drawLine(boardStart, boardStart + ivec2(squareSize * boardSize, 0), Black)
+    drawLine(boardStart, boardStart + ivec2(boardPixLength, 0), Black)
     # Render board and check if snake intersecting with fruit
     var fruitHit = -1
     for i in 0..<state.fruits.len:
@@ -136,5 +137,5 @@ while not windowShouldClose():
         (0, min(57 + i * 5, 255), 0) # Add changing colour to snake
       )
     if state.gameOver:
-      drawText("GAME OVER", 50, 50, 20, Pink)
+      drawTextCenter("GAME OVER", boardStart + ivec2(boardPixLength div 2), 47, Pink)
 closeWindow()
