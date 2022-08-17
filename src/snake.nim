@@ -103,7 +103,7 @@ while not windowShouldClose():
   beginDrawing:
     clearBackground(RayWhite)
     # Render score
-    drawText(cstring("Your score is: " & $state.score), 10, 10, 10, Pink)
+    drawText(cstring("Your score is: " & $state.score), 10, 10, 20, Pink)
     # Render previous scores
     # for i in 0..<scores.len:
       # drawText($score, boardStart + ivec2(squareSize * boardSize) + ivec2(10), 20, Black)
