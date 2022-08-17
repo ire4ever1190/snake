@@ -34,8 +34,8 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install libx11-dev 
-          
+          sudo apt install libx11-dev libxcursor-dev
+
       - name: Update nimble
         run: nimble update -y
 
