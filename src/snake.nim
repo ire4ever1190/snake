@@ -127,10 +127,11 @@ while not windowShouldClose():
       state.grow = true
       state.fruits &= state.randomAvailableSpot()
       
-    for pos in state.snake:
+    for i in 0..<state.snake.len:
+      let pos = state.snake[i]
       drawRectangle(
         boardStart + pos * squareSize, 
         ivec2(squareSize, squareSize),
-        Green
+        (0, min(57 + i * 5, 255), 0) # Add changing colour to snake
       )
 closeWindow()
