@@ -117,7 +117,7 @@ while not windowShouldClose():
       drawRectangle(
         boardStart + pos * squareSize, 
         ivec2(squareSize, squareSize), 
-        Orange
+        (139, 198, 252)
       )
       if pos == state.snake[0] and runChecks:
         fruitHit = i
