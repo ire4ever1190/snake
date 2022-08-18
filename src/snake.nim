@@ -77,7 +77,7 @@ while not windowShouldClose():
       newDirection
     
   else:
-    if isKeyPressed(KeyboardKey.Enter):
+    if anyPressed(KeyboardKey.Left, KeyboardKey.Right, Up, Down, A, W, S, D):
       scores &= state.score
       state = initGame()
       continue
