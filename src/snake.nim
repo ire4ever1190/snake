@@ -3,7 +3,10 @@ import pkg/[
   vmath
 ]
 
-import std/random
+import std/[
+  random,
+  strformat
+  ]
 
 import drawing, utils
 
@@ -16,7 +19,7 @@ const
   boardStart = ivec2(0, 30) # Start of game area
   boardPixLength = boardSize * squareSize
 
-var scores: seq[int]
+var highscore: int = 0
 
 type
   GameState = object
@@ -78,7 +81,6 @@ while not windowShouldClose():
     
   else:
     if anyPressed(KeyboardKey.Left, KeyboardKey.Right, Up, Down, A, W, S, D):
-      scores &= state.score
       state = initGame()
       continue
   state.incStep()
@@ -104,7 +106,7 @@ while not windowShouldClose():
   beginDrawing:
     clearBackground(RayWhite)
     # Render score
-    drawText(cstring("Your score is: " & $state.score), 10, 10, 20, Pink)
+    drawText(cstring(fmt"Score: {state.score} High score: {highscore}",), 10, 10, 20, Pink)
     # Render previous scores
     # for i in 0..<scores.len:
       # drawText($score, boardStart + ivec2(squareSize * boardSize) + ivec2(10), 20, Black)
@@ -126,6 +128,8 @@ while not windowShouldClose():
     if fruitHit != -1:
       state.fruits.del(fruitHit)
       state.score += 1
+      if state.score > highscore:
+        highscore = state.score
       state.grow = true
       state.fruits &= state.randomAvailableSpot()
       
