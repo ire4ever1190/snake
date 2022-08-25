@@ -78,11 +78,11 @@ while not windowShouldClose():
       ivec2(0, 1)
     else: 
       newDirection
-    
   else:
     if anyPressed(KeyboardKey.Left, KeyboardKey.Right, Up, Down, A, W, S, D):
       state = initGame()
       continue
+      
   state.incStep()
 
   let runChecks = state.step == 0
@@ -94,7 +94,7 @@ while not windowShouldClose():
     # Get new position
     let newPosition = state.snake[0] + state.direction
     # Check snake isn't biting itself and in bounds
-    if newPosition in state.snake or newPosition.x notin 0..<boardSize or newPosition.y notin 0..<boardSize:
+    if newPosition in state.snake[0 ..< ^1] or newPosition.x notin 0..<boardSize or newPosition.y notin 0..<boardSize:
       state.gameOver = true
     # If we got a fruit last round then don't remove tail so we 'grow'
     if not state.gameOver:
@@ -106,7 +106,7 @@ while not windowShouldClose():
   beginDrawing:
     clearBackground(RayWhite)
     # Render score
-    drawText(cstring(fmt"Score: {state.score} High score: {highscore}",), 10, 10, 20, Pink)
+    drawText(cstring(fmt"Score: {state.score} High score: {highscore}"), 10, 10, 20, Pink)
     # Render previous scores
     # for i in 0..<scores.len:
       # drawText($score, boardStart + ivec2(squareSize * boardSize) + ivec2(10), 20, Black)
@@ -142,4 +142,5 @@ while not windowShouldClose():
       )
     if state.gameOver:
       drawTextCenter("GAME OVER", boardStart + ivec2(boardPixLength div 2), 47, Pink)
+      
 closeWindow()
