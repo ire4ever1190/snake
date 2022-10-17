@@ -34,15 +34,17 @@ randomize()
 
 proc randomAvailableSpot(g: GameState): IVec2 =
   ## Returns a position that isn't a fruit or snake piece
-  var attempts = 4
-  while attempts > 0:
-    attempts -= 1
-    let 
-      x = rand(0..<boardSize)
-      y = rand(0..<boardSize)
-      pos = ivec2(x, y)
-    if pos notin g.fruits and pos notin g.snake:
-      return pos 
+  # From benchmarking, linear scan vs hashset seems to give similar performance
+  var availableSpots = newSeqOfCap[IVec2](boardSize * boardSize - g.snake.len)
+  for x in 0..<boardSize:
+    for y in 0..<boardSize:
+      let pos = ivec2(x, y)
+      if pos notin g.fruits and pos notin g.snake:
+        availableSpots &= pos
+  if availableSpots.len > 0:
+    result = availableSpots.sample()
+  else:
+    result = ivec2(-1, -1)
       
 func incStep(g: var GameState) =
   g.step = (g.step + 1) mod 10
@@ -59,10 +61,12 @@ proc initGame(): GameState =
 var 
   state = initGame()
   newDirection = state.direction
-
+  paused = false
+  
 block:
   let windowSize = boardStart + ivec2(boardSize * squareSize)
   initWindow(windowSize.x, windowSize.y, "Snake")
+
 setTargetFPS(60)
 
 while not windowShouldClose():
@@ -78,6 +82,9 @@ while not windowShouldClose():
       ivec2(0, 1)
     else: 
       newDirection
+    if isKeyPressed(SPACE):
+      paused = not paused
+      state.step = 1
   else:
     if anyPressed(KeyboardKey.Left, KeyboardKey.Right, Up, Down, A, W, S, D):
       state = initGame()
@@ -85,7 +92,7 @@ while not windowShouldClose():
       
   state.incStep()
 
-  let runChecks = state.step == 0
+  let runChecks = state.step == 0 and not paused
   # Move snake forward
   if runChecks and not state.gameOver:
     # Check not going back on itself
@@ -131,7 +138,9 @@ while not windowShouldClose():
       if state.score > highscore:
         highscore = state.score
       state.grow = true
-      state.fruits &= state.randomAvailableSpot()
+      let newFruit = state.randomAvailableSpot()
+      if newFruit.x != -1:
+        state.fruits &= newFruit
       
     for i in 0..<state.snake.len:
       let pos = state.snake[i]
