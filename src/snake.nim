@@ -6,7 +6,7 @@ import pkg/[
 import std/[
   random,
   strformat
-  ]
+]
 
 import drawing, utils
 
@@ -18,6 +18,7 @@ const
   squareSize = 30
   boardStart = ivec2(0, 30) # Start of game area
   boardPixLength = boardSize * squareSize
+  moveTime = 0.166 # Move after this many seconds
 
 var highscore: int = 0
 
@@ -25,7 +26,6 @@ type
   GameState = object
     fruits, snake: seq[IVec2]
     gameOver: bool
-    step: int
     direction: IVec2
     score: int
     grow: bool
@@ -46,11 +46,6 @@ proc randomAvailableSpot(g: GameState): IVec2 =
   else:
     result = ivec2(-1, -1)
       
-func incStep(g: var GameState) =
-  g.step = (g.step + 1) mod 10
-
-
-
 proc initGame(): GameState = 
   result.snake &= ivec2(boardSize div 2)
   for i in 0..<3:
@@ -64,37 +59,35 @@ var
   paused = false
   
 block:
+  setConfigFlags(VsyncHint or Msaa4xHint)
   let windowSize = boardStart + ivec2(boardSize * squareSize)
   initWindow(windowSize.x, windowSize.y, "Snake")
-
-setTargetFPS(60)
+  
+var time = 0.0
 
 while not windowShouldClose():
   # Check input
   if not state.gameOver:
-    newDirection = if anyPressed(KeyboardKey.Right, KeyboardKey.D):
-      ivec2(1, 0)
-    elif anyPressed(KeyboardKey.Left, KeyboardKey.A):
-      ivec2(-1, 0)
-    elif anyPressed(KeyboardKey.Up, KeyboardKey.W):
-      ivec2(0, -1)
-    elif anyPressed(KeyboardKey.Down, KeyboardKey.S):
-      ivec2(0, 1)
-    else: 
-      newDirection
+    template handlePress(a, b: KeyboardKey, d: IVec2) =
+      if anyPressed(a, b): newDirection = d
+    handlePress(KeyboardKey.Right, KeyboardKey.D, ivec2(1, 0))
+    handlePress(KeyboardKey.Left,  KeyboardKey.A, ivec2(-1, 0))
+    handlePress(KeyboardKey.Up,    KeyboardKey.W, ivec2(0, -1))
+    handlePress(KeyboardKey.Down,  KeyboardKey.S, ivec2(0, 1))
+     
     if isKeyPressed(SPACE):
       paused = not paused
-      state.step = 1
+      time = 0
   else:
     if anyPressed(KeyboardKey.Left, KeyboardKey.Right, Up, Down, A, W, S, D):
       state = initGame()
       continue
       
-  state.incStep()
-
-  let runChecks = state.step == 0 and not paused
+  time += getFrameTime()
+  let runChecks = time >= moveTime and not paused
   # Move snake forward
   if runChecks and not state.gameOver:
+    time = 0
     # Check not going back on itself
     if newDirection.abs != state.direction.abs:
       state.direction = newDirection
@@ -114,9 +107,6 @@ while not windowShouldClose():
     clearBackground(RayWhite)
     # Render score
     drawText(cstring(fmt"Score: {state.score} High score: {highscore}"), 10, 10, 20, Pink)
-    # Render previous scores
-    # for i in 0..<scores.len:
-      # drawText($score, boardStart + ivec2(squareSize * boardSize) + ivec2(10), 20, Black)
     # Draw walls
     drawLine(boardStart, boardStart + ivec2(boardPixLength, 0), Black)
     # Render board and check if snake intersecting with fruit
