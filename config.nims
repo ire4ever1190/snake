@@ -1,5 +1,5 @@
 switch("gc", "arc")
-switch("threads", "off")
+switch("threads", "on")
 
 # Basically copied from https://github.com/treeform/nim_emscripten_tutorial
 if defined(emscripten):
@@ -25,4 +25,5 @@ if defined(emscripten):
   --define:noSignalHandler # Emscripten doesn't support signal handlers.
 
   # Pass this to Emscripten linker to generate html file scaffold for us.
-  switch("passL", "-o index.html --shell-file shell.html")
+  --passL:"-o index.html --shell-file shell.html"
+  --passC:"-s USE_PTHREADS=1"

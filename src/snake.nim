@@ -5,7 +5,10 @@ import pkg/[
 
 import std/[
   random,
-  strformat
+  strformat,
+  monotimes,
+  times,
+  os
 ]
 
 import drawing, utils
@@ -18,7 +21,7 @@ const
   squareSize = 30
   boardStart = ivec2(0, 30) # Start of game area
   boardPixLength = boardSize * squareSize
-  moveTime = 0.166 # Move after this many seconds
+  moveTime = 166 # Move after this many milliseconds
 
 var highscore: int = 0
 
@@ -57,52 +60,70 @@ var
   state = initGame()
   newDirection = state.direction
   paused = false
+  runChecks = false
   
 block:
   setConfigFlags(VsyncHint or Msaa4xHint)
   let windowSize = boardStart + ivec2(boardSize * squareSize)
   initWindow(windowSize.x, windowSize.y, "Snake")
   
-var time = 0.0
+proc logicLoop() {.thread.} =
+  {.cast(gcsafe).}: # Trust me bro this is GC safe
+    var start = getMonoTime()
+    while true:
+      if not state.gameOver:
+        template handlePress(a, b: KeyboardKey, d: IVec2) =
+          if anyPressed(a, b): newDirection = d
+        handlePress(KeyboardKey.Right, KeyboardKey.D, ivec2(1, 0))
+        handlePress(KeyboardKey.Left,  KeyboardKey.A, ivec2(-1, 0))
+        handlePress(KeyboardKey.Up,    KeyboardKey.W, ivec2(0, -1))
+        handlePress(KeyboardKey.Down,  KeyboardKey.S, ivec2(0, 1))
+         
+        if isKeyPressed(SPACE):
+          paused = not paused
+          start = getMonoTime()
+      else:
+        if anyPressed(KeyboardKey.Left, KeyboardKey.Right, Up, Down, A, W, S, D):
+          state = initGame()
+          continue
+          
+      runChecks = (getMonoTime() - start).inMilliseconds >= moveTime and not paused
+      # Move snake forward
+      if runChecks and not state.gameOver:
+        start = getMonoTime()
+        # Check not going back on itself
+        if newDirection.abs != state.direction.abs:
+          state.direction = newDirection
+        # Get new position
+        let newPosition = state.snake[0] + state.direction
+        # Check snake isn't biting itself and in bounds
+        if newPosition in state.snake[0 ..< ^1] or newPosition.x notin 0..<boardSize or newPosition.y notin 0..<boardSize:
+          state.gameOver = true
+        # If we got a fruit last round then don't remove tail so we 'grow'
+        if not state.gameOver:
+          if not state.grow:
+            discard state.snake.pop()
+          state.snake.insert(newPosition, 0)    
+          state.grow = false
+          # Check if the snake ate any fruit
+          let fruitHit = state.fruits.find(state.snake[0])
+              
+          if fruitHit != -1:
+            state.fruits.del(fruitHit)
+            state.score += 1
+            if state.score > highScore:
+              highscore = state.score
+            state.grow = true
+            # Add in fruit to replace the lost one
+            let newFruit = state.randomAvailableSpot()
+            if newFruit.x != -1:
+              state.fruits &= newFruit
+      sleep 5 # Lets not use all the CPU, tone it down a bit
+var logicThread: Thread[void]
+createThread(logicThread, logicLoop)
 
 while not windowShouldClose():
   # Check input
-  if not state.gameOver:
-    template handlePress(a, b: KeyboardKey, d: IVec2) =
-      if anyPressed(a, b): newDirection = d
-    handlePress(KeyboardKey.Right, KeyboardKey.D, ivec2(1, 0))
-    handlePress(KeyboardKey.Left,  KeyboardKey.A, ivec2(-1, 0))
-    handlePress(KeyboardKey.Up,    KeyboardKey.W, ivec2(0, -1))
-    handlePress(KeyboardKey.Down,  KeyboardKey.S, ivec2(0, 1))
-     
-    if isKeyPressed(SPACE):
-      paused = not paused
-      time = 0
-  else:
-    if anyPressed(KeyboardKey.Left, KeyboardKey.Right, Up, Down, A, W, S, D):
-      state = initGame()
-      continue
-      
-  time += getFrameTime()
-  let runChecks = time >= moveTime and not paused
-  # Move snake forward
-  if runChecks and not state.gameOver:
-    time = 0
-    # Check not going back on itself
-    if newDirection.abs != state.direction.abs:
-      state.direction = newDirection
-    # Get new position
-    let newPosition = state.snake[0] + state.direction
-    # Check snake isn't biting itself and in bounds
-    if newPosition in state.snake[0 ..< ^1] or newPosition.x notin 0..<boardSize or newPosition.y notin 0..<boardSize:
-      state.gameOver = true
-    # If we got a fruit last round then don't remove tail so we 'grow'
-    if not state.gameOver:
-      if not state.grow:
-        discard state.snake.pop()
-      state.snake.insert(newPosition, 0)    
-    state.grow = false
-    
   beginDrawing:
     clearBackground(RayWhite)
     # Render score
@@ -110,7 +131,6 @@ while not windowShouldClose():
     # Draw walls
     drawLine(boardStart, boardStart + ivec2(boardPixLength, 0), Black)
     # Render board and check if snake intersecting with fruit
-    var fruitHit = -1
     for i in 0..<state.fruits.len:
       let pos = state.fruits[i]
       drawRectangle(
@@ -118,19 +138,6 @@ while not windowShouldClose():
         ivec2(squareSize, squareSize), 
         (139, 198, 252)
       )
-      if pos == state.snake[0] and runChecks:
-        fruitHit = i
-    # If a fruit was collided with then remove it, replace it, add score to player
-    # and set flag to grow next check
-    if fruitHit != -1:
-      state.fruits.del(fruitHit)
-      state.score += 1
-      if state.score > highscore:
-        highscore = state.score
-      state.grow = true
-      let newFruit = state.randomAvailableSpot()
-      if newFruit.x != -1:
-        state.fruits &= newFruit
       
     for i in 0..<state.snake.len:
       let pos = state.snake[i]
