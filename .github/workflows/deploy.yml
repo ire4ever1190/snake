@@ -60,7 +60,7 @@ jobs:
         run: nimble -d:release -d:emscripten build
 
       - name: Bundle files
-        run: zip site.zip index.html index.wasm *.js _headers
+        run: zip site.zip index.* _headers
 
       - name: Deploy site
         run: |
