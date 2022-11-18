@@ -25,5 +25,5 @@ if defined(emscripten):
   --define:noSignalHandler # Emscripten doesn't support signal handlers.
 
   # Pass this to Emscripten linker to generate html file scaffold for us.
-  --passL:"-o index.html --shell-file shell.html"
-  --passC:"-sUSE_PTHREADS=1 -sPTHREAD_POOL_SIZE=4"
+  --passL:"-o index.html -sPTHREAD_POOL_SIZE=2 --shell-file shell.html"
+  --passC:"-sUSE_PTHREADS=1"
