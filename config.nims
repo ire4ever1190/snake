@@ -26,4 +26,4 @@ if defined(emscripten):
 
   # Pass this to Emscripten linker to generate html file scaffold for us.
   --passL:"-o index.html --shell-file shell.html"
-  --passC:"-s USE_PTHREADS=1"
+  --passC:"-sUSE_PTHREADS=1 -sPTHREAD_POOL_SIZE=4"
