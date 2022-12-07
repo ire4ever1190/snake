@@ -118,7 +118,7 @@ proc logicLoop() {.thread.} =
             let newFruit = state.randomAvailableSpot()
             if newFruit.x != -1:
               state.fruits &= newFruit
-      sleep 5 # Lets not use all the CPU, tone it down a bit
+      sleep 1 # Lets not use all the CPU, tone it down a bit
 var logicThread: Thread[void]
 createThread(logicThread, logicLoop)
 
