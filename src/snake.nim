@@ -22,11 +22,12 @@ const
   background: Color = (0xff, 0xc2, 0x00)
   boardSize = 20
   squareSize = 15
+  squareSizeVec = ivec2(squareSize, squareSize)
   boardStart = ivec2(0, 30) # Start of game area
   boardPixLength = boardSize * squareSize
   moveTime = 166 # Move after this many milliseconds
   fruitNum = 1 # How much fruit to place
-  epsilon = 0.00 # Chance to explore a random option
+  epsilon = (when defined(training): 0.1 else: 0) # Chance to explore a random option
   learningRate = 0.7
   discount = 0.5
   saveFile = "snake.brain"
@@ -46,14 +47,16 @@ type
     Lower
     Same
 
-  QState = object
-    ## Represents the Q-State of the snake
-    leftOf, forward: RelativePos
-    inDanger: array[3, bool]
   Action = enum
     Forward
     Left
     Right
+
+  QState = object
+    ## Represents the Q-State of the snake
+    leftOf, forward: RelativePos
+    inDanger: array[3, bool]
+
   ActionArray = array[Action, float]
   QScores = Table[QState, array[Action, float]]
 
@@ -200,7 +203,7 @@ proc updateScores() =
     let
       score = getScores(item.state)[item.action]
       prevScore = getScores(prev.state)[prev.action]
-    if item.gameOver:
+    if reward < 0:
       # Since there is no future state, we dont reward or something
       scores[item.state][item.action] = (1 - learningRate) * score + learningRate * reward
     else:
@@ -213,16 +216,13 @@ proc initGame(): GameState =
   result.direction = ivec2(1, 0)
   result.grow = false
 
-var
-  state = initGame()
-  newDirection = state.direction
-  paused = false
-  runChecks = false
+var state = initGame()
 
 proc step(state: var GameState) =
   let qstate = state.initQState()
   let action = if rand(1.0) < epsilon: sample({Left, Right, Forward})
                else: qstate.bestAction()
+
   state.direction = state.direction.turn(action)
   # Get new position
   let
@@ -230,16 +230,10 @@ proc step(state: var GameState) =
     distance = state.snake[0].dist(state.fruits[0])
   # Check snake isn't biting itself and in bounds
   if not state.freePos(newPosition):
-    # echo newDirection
-    # let pos = newPosition
-    # echo pos notin state.snake, " ", pos.x >= 0, " ", pos.y >= 0, " ", pos.x < boardSize, " ", pos.y < boardSize
-    # echo pos
-    # echo state.snake
-    # sleep 1000000
     state.gameOver = true
-    return
-  # If we got a fruit last round then don't remove tail so we 'grow'
+
   if not state.gameOver:
+    # If we got a fruit last round then don't remove tail so we 'grow'
     if not state.grow:
       discard state.snake.pop()
     state.snake.insert(newPosition, 0)
@@ -264,26 +258,29 @@ proc step(state: var GameState) =
     gameOver: state.gameOver,
     action: action
   )
-  updateScores()
+  when defined(training):
+    updateScores()
 
 var epNum = 0
 
-# while epNum < 100_000:
-#   state.step()
-#   if state.gameOver:
-#     epNum += 1
-#     if epNum mod 1000 == 0:
-#       # echo "Saving..."
-#       saveScores()
-#       discard
-#     echo "Episode ended: ", epNum
-#     # Episode has ended, update the score table
-#     # We ignore first item since no action was taken
-#     history.setLen(0)
-#     state = initGame()
+when defined(training):
+  while epNum < 200_000:
+    state.step()
+    if state.gameOver:
+      epNum += 1
+      if epNum mod 1000 == 0:
+        echo "Saving..."
+        saveScores()
+        discard
+      if epNum mod 200 == 0:
+        echo "Episode ended: ", epNum, " [", highScore, "]"
+      # Episode has ended, update the score table
+      # We ignore first item since no action was taken
+      history.setLen(0)
+      state = initGame()
 
 
-when true:
+else:
   block:
     # setConfigFlags(VsyncHint or Msaa4xHint)
     let windowSize = boardStart + ivec2(boardSize * squareSize)
@@ -301,7 +298,7 @@ when true:
         let pos = state.fruits[i]
         drawRectangle(
           boardStart + pos * squareSize,
-          ivec2(squareSize, squareSize),
+          squareSizeVec,
           (139, 198, 252)
         )
 
@@ -309,22 +306,16 @@ when true:
         let pos = state.snake[i]
         drawRectangle(
           boardStart + pos * squareSize,
-          ivec2(squareSize, squareSize),
+          squareSizeVec,
           if i == 0: (100, 50, 0)
           else: (0, min(57 + i * 5, 255), 0) # Add changing colour to snake
         )
       if state.gameOver:
         drawTextCenter("GAME OVER", boardStart + ivec2(boardPixLength div 2), 47, Pink)
-
       {.gcsafe.}:
         state.step()
         if state.gameOver:
           epNum += 1
-          if epNum mod 1000 == 0:
-            # echo "Saving..."
-            saveScores()
-            discard
-          echo "Episode ended: ", epNum
           # Episode has ended, update the score table
           # We ignore first item since no action was taken
           history.setLen(0)
