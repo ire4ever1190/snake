@@ -11,7 +11,9 @@ import std/[
   os,
   tables,
   lenientops,
-  json
+  json,
+  heapqueue,
+  sets
 ]
 
 import drawing, utils
@@ -31,6 +33,7 @@ const
   learningRate = 0.7
   discount = 0.5
   saveFile = "snake.brain"
+  maxEpisodeLength = 100000
 
 var highscore: int = 0
 
@@ -100,13 +103,64 @@ proc randomAvailableSpot(g: GameState): IVec2 =
   else:
     result = ivec2(-1, -1)
 
+func inBounds(pos: IVec2): bool {.inline.} =
+  ## Checks if a position is in bounds
+  pos.x >= 0 and pos.y >= 0 and pos.x < boardSize and pos.y < boardSize
+
 func freePos(state: GameState, pos: IVec2): bool =
   ## Checks if a position is free (in bounds, not a snake part)
-  result = pos notin state.snake and pos.x >= 0 and pos.y >= 0 and pos.x < boardSize and pos.y < boardSize
+  result = pos notin state.snake and pos.inBounds()
+
+func freeAfterMove(parts: seq[IVec2], pos: IVec2): bool =
+  ## Checks if its ok for a snake to move to pos
+  result = pos.inBounds() and pos notin parts.toOpenArray(0, parts.len - 2)
 
 func dist(a, b: IVec2): float =
   let diff = a - b
   math.sqrt(float32(diff.x * diff.x) + float32(diff.y * diff.y))
+
+type
+  Node = object
+    cost: int
+    dist: float
+    parts: seq[IVec2]
+
+func pos(n: Node): IVec2 =
+  n.parts[0]
+
+proc `<`(a, b: Node): bool =
+  a.cost + a.dist < b.cost + b.dist
+
+proc checkStaysFree(state: GameState, pos: IVec2): bool =
+  ## Checks that a position will be able to reach the fruit
+  # TODO: Pop tail while checking to enable more advanced moves
+  if not state.snake.freeAfterMove(pos): return false
+
+  let fruitPos = state.fruits[0]
+  # Simple A* search to find fruit
+  var initNode = Node(cost: 0, dist: pos.dist(fruitPos), parts: state.snake)
+  initNode.parts.insert(pos, 0)
+  discard initNode.parts.pop()
+  var
+    frontier = [initNode].toHeapQueue()
+    # To reduce the search space we only consider positions
+    seen = [initNode.pos].toHashSet()
+  while frontier.len > 0:
+    var curr = frontier.pop()
+    # Basic checks on the node
+    if curr.pos == fruitPos: return true
+    # Add neighbours
+    for diff in [ivec2(0, 1), ivec2(0, -1), ivec2(-1, 0), ivec2(1, 0)]:
+      let pos = curr.pos + diff
+      if not curr.parts.freeAfterMove(pos): continue
+      var newNode = curr
+      newNode.cost += 1
+      newNode.dist = pos.dist(fruitPos)
+      newNode.parts.insert(pos, 0)
+      discard newNode.parts.pop()
+      if seen.containsOrIncl(newNode.pos): continue
+      frontier.push(newNode)
+
 
 func zeroSign(i: int): int =
   if i == 0: 0
@@ -165,9 +219,9 @@ func initQState(state: GameState): QState =
     leftOf: handyPos(headPos, state.direction, fruit),
     forward: directionPos(headPos, state.direction, fruit),
     inDanger: [
-        not state.freePos(state.applyAction(Left)),
-        not state.freePos(state.applyAction(Right)),
-        not state.freePos(state.applyAction(Forward))
+        not state.checkStaysFree(state.applyAction(Left)),
+        not state.checkStaysFree(state.applyAction(Right)),
+        not state.checkStaysFree(state.applyAction(Forward))
     ]
   )
 
@@ -229,7 +283,7 @@ proc step(state: var GameState) =
     newPosition = state.snake[0] + state.direction
     distance = state.snake[0].dist(state.fruits[0])
   # Check snake isn't biting itself and in bounds
-  if not state.freePos(newPosition):
+  if not state.snake.freeAfterMove(newPosition):
     state.gameOver = true
 
   if not state.gameOver:
@@ -252,21 +306,21 @@ proc step(state: var GameState) =
       if newFruit.x != -1:
         state.fruits &= newFruit
 
-  history &= HistoryItem(
-    distance: distance,
-    state: qstate,
-    gameOver: state.gameOver,
-    action: action
-  )
   when defined(training):
-    updateScores()
+    history &= HistoryItem(
+      distance: distance,
+      state: qstate,
+      gameOver: state.gameOver,
+      action: action
+    )
 
 var epNum = 0
 
 when defined(training):
   while epNum < 200_000:
     state.step()
-    if state.gameOver:
+    updateScores()
+    if state.gameOver or history.len >= maxEpisodeLength:
       epNum += 1
       if epNum mod 1000 == 0:
         echo "Saving..."
@@ -314,11 +368,12 @@ else:
         drawTextCenter("GAME OVER", boardStart + ivec2(boardPixLength div 2), 47, Pink)
       {.gcsafe.}:
         state.step()
+
         if state.gameOver:
           epNum += 1
           # Episode has ended, update the score table
           # We ignore first item since no action was taken
           history.setLen(0)
           state = initGame()
-        sleep 100
+        sleep 50
   closeWindow()
